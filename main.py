@@ -123,7 +123,31 @@ async def get_trends():
     return trends
 
 
-
+@app.post("/get-hashtags")
+async def generate_text(request: TextRequest):
+    contents = f"""
+    You are a hashtag generator.
+    you are given a description of a product and you need to generate 10 hashtags for the product.
+    the hashtags should be relevant to the product and should be in the style of the product.
+    the product description is: {request.prompt}
+    Note the output should be a json array of strings. with key as "hashtags" and value as an array of strings.
+    """
+    response = client.models.generate_content(
+    model="gemini-2.0-flash",
+    contents=contents 
+    )
+    print(response.text)
+    match = re.search(r"\{.*\}", response.text, re.DOTALL)
+    
+    if match:
+        json_str = match.group(0)  # Extract the JSON part
+        try:
+            json_response = json.loads(json_str)
+            return json_response  # Return the extracted JSON
+        except json.JSONDecodeError:
+            return {"error": "Invalid JSON response"}
+    else:
+        return {"error": "No JSON found in response"}
 
 
 # run the app: uvicorn app:app --reload
