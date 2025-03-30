@@ -86,36 +86,36 @@ async def generate_image(request: ImageRequest):
 
 # edit image 
 class EditImageRequest(BaseModel):
-    image: str
     prompt: str
+    image: str  # Base64 encoded image string
 
 @app.post("/edit-image")
 async def edit_image(request: EditImageRequest):
     text_input = request.prompt
     image_data = base64.b64decode(request.image)
     image = Image.open(BytesIO(image_data))
+
     try:
         response = client.models.generate_content(
-        model="gemini-2.0-flash-exp-image-generation",
-        contents=[text_input, image],
-        config=types.GenerateContentConfig(
-        response_modalities=['Text', 'Image']
+            model="gemini-2.0-flash-exp-image-generation",
+            contents=[text_input, image],
+            config=types.GenerateContentConfig(response_modalities=['Text', 'Image'])
         )
-    )       
+
         for part in response.candidates[0].content.parts:
-                if part.text is not None:
-                    print(part.text)
-                elif part.inline_data is not None:
-                    image = Image.open(BytesIO((part.inline_data.data)))
-                    image.save('gemini-edited-image.png')
-                    #read the image
-                    with open('gemini-native-image.png', 'rb') as image_file:
-                        image_data = image_file.read()
-                        image_str = base64.b64encode(image_data).decode("utf-8")     
-                        return {"image": image_str}
+            if part.text is not None:
+                print(part.text)  # Optional: Print text output
+            elif part.inline_data is not None:
+                # Convert inline image data to base64 without saving
+                edited_image = Image.open(BytesIO(part.inline_data.data))
+                buffered = BytesIO()
+                edited_image.save(buffered, format="PNG")
+                image_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+                return {"image": image_base64}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 @app.get("/get-trends")
 async def get_trends():
     print("Getting trends")
