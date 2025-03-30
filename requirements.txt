@@ -44,3 +44,4 @@ webrtcvad == 2.0.10
 google-genai
 dotenv
 pillow
+regex
